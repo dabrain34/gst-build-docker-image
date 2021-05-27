@@ -1,5 +1,5 @@
 #!/bin/bash
-DEFAULT_TAG="20.04-master"
+DEFAULT_TAG="18.04-1.18"
 echo "Please specify a tag version...(default ubuntu-gst-build/$DEFAULT_TAG)"
 read TAG
 if [ -z $TAG ]; then

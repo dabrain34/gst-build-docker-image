@@ -1,9 +1,9 @@
-FROM ubuntu:20.04
+FROM ubuntu:18.04
 
 MAINTAINER dabrain34
 
 ENV DEBIAN_FRONTEND noninteractive
-ENV GST_BUILD_BRANCH master
+ENV GST_BUILD_BRANCH 1.18
 
 # Create the worker dir
 RUN mkdir /workdir
@@ -29,8 +29,6 @@ RUN apt-get install -y \
 
 # gst-build plugins dependencies
 RUN apt-get install -y \
-    libsrt-dev \
-    libaom-dev \
     libcaca-dev \
     libgtk-3-dev \
     libgtest-dev \
@@ -41,6 +39,23 @@ RUN apt-get install -y \
     libopencv-dev \
     libsbc-dev \
     libx264-dev
+
+#Essential for SRT
+RUN apt-get install -y curl \
+                       cmake \
+                       nettle-dev \
+                       libgnutls28-dev \
+                       pkg-config
+
+RUN curl -L https://github.com/Haivision/srt/archive/refs/tags/v1.4.3.tar.gz | tar xz
+WORKDIR /workdir/srt-1.4.3
+
+RUN mkdir -p build && \
+    cd build && \
+    cmake .. -DUSE_ENCLIB=gnutls && \
+    make -j 2 install
+
+WORKDIR /workdir
 
 # gst-build configure and build
 RUN git clone https://gitlab.freedesktop.org/gstreamer/gst-build.git && cd gst-build && git checkout $GST_BUILD_BRANCH && \

@@ -8,14 +8,18 @@ DEFAULT_GST_BUILD_VERSION="master"
 if [ -z $UBUNTU_VERSION ]; then
 echo "Please specify a ubuntu version...(default ubuntu-gst-build/$DEFAULT_UBUNTU_VERSION)"
 read UBUNTU_VERSION
+if [ -z $UBUNTU_VERSION ]; then
 UBUNTU_VERSION=$DEFAULT_UBUNTU_VERSION
+fi
 fi
 
 
 if [ -z $GST_BUILD_VERSION ]; then
 echo "Please specify a gst-build version...(default ubuntu-gst-build/$DEFAULT_GST_BUILD_VERSION)"
 read GST_BUILD_VERSION
+if [ -z $GST_BUILD_VERSION ]; then
 GST_BUILD_VERSION=$DEFAULT_GST_BUILD_VERSION
+fi
 fi
 
 TAG=$UBUNTU_VERSION-$GST_BUILD_VERSION

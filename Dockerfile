@@ -1,10 +1,10 @@
-ARG UBUNTU_VERSION=ubuntu:20.04
+ARG UBUNTU_VERSION=ubuntu:18.04
 FROM $UBUNTU_VERSION
 
 MAINTAINER dabrain34
 ENV DEBIAN_FRONTEND noninteractive
 
-ARG UBUNTU_VERSION=ubuntu:20.04
+ARG UBUNTU_VERSION=ubuntu:18.04
 ARG GST_BUILD_BRANCH_EXT=master
 ENV GST_BUILD_BRANCH $GST_BUILD_BRANCH_EXT
 
@@ -18,12 +18,16 @@ WORKDIR /workdir
 RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y build-essential \
+        sudo \
         git \
         wget \
         unzip \
         net-tools \
         ninja-build \
-        python3-pip
+        python3-pip \
+        yasm \
+        gcc-aarch64-linux-gnu \
+        g++-aarch64-linux-gnu
 
 RUN if [ "x$UBUNTU_VERSION" = "xubuntu:16.04" ] ; then \
         apt-get install -y software-properties-common python-software-properties; \
@@ -37,7 +41,7 @@ RUN if [ "x$UBUNTU_VERSION" = "xubuntu:16.04" ] ; then \
         update-alternatives --install /usr/bin/ninja ninja /usr/local/bin/ninja 1 --force; \
         fi
 
-RUN pip3 install meson
+RUN pip3 install meson==0.58.2
 
 # gst-build dependencies
 RUN apt-get install -y \
@@ -45,17 +49,7 @@ RUN apt-get install -y \
         flex \
         bison
 
-# gst-build plugins dependencies
-RUN apt-get install -y \
-    libcaca-dev \
-    libgtk-3-dev \
-    libgtest-dev \
-    libgsl-dev \
-    libfaac-dev \
-    libnice-dev \
-    libopencv-dev \
-    libsbc-dev \
-    libx264-dev
+
 
 RUN if [ "x$UBUNTU_VERSION" = "xubuntu:20.04" ] ; then apt-get install -y libaom-dev libgraphene-1.0-dev  ; fi
 
@@ -65,26 +59,15 @@ RUN apt-get install -y curl \
                        libgnutls28-dev \
                        pkg-config
 
-RUN curl -L https://github.com/Haivision/srt/archive/refs/tags/v1.4.3.tar.gz | tar xz
-WORKDIR /workdir/srt-1.4.3
-
-RUN mkdir -p build && \
-    cd build && \
-    cmake .. -DUSE_ENCLIB=gnutls && \
-    make -j 2 install
-
 
 # gst-build configure and build
 WORKDIR /workdir
+ADD my-xlnx-cross-file.txt .
+RUN git clone https://github.com/Xilinx/vcu-omx-il.git --branch=release-2020.1 vcu-omx-il
+
+
 RUN echo "Building gst-build version $GST_BUILD_BRANCH" && \
     git clone https://gitlab.freedesktop.org/gstreamer/gst-build.git && \
     cd gst-build && git checkout $GST_BUILD_BRANCH && \
-    meson build_dir -Ddevtools=disabled -Dvaapi=disabled  && \
-    ninja -C build_dir && \
-    ninja -C build_dir install && \
-    ldconfig
-
-RUN if [ "x$UBUNTU_VERSION" != "xubuntu:20.04" ] ; then \
-        apt-get install -y python-gst-1.0 python-gi; \
-        fi
-        
+    meson build_dir -D omx=enabled -D sharp=disabled -Dgst-omx:header_path=/workdir/vcu-omx-il/omx_header -D gst-omx:target=zynqultrascaleplus -D libav=disabled -D rtsp_server=disabled -D vaapi=disabled --cross-file=/workdir/my-xlnx-cross-file.txt -Dugly=disabled -Dglib:libmount=disabled  && \
+    ninja -C build_dir
